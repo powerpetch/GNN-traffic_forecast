@@ -1,0 +1,273 @@
+# Bangkok GNN Traffic Prediction - Git Ignore File
+# ================================================
+
+# ===== SENSITIVE DATA =====
+# API Keys and Secrets
+.streamlit/secrets.toml
+*.env
+.env*
+secrets.json
+config/api_keys.json
+
+# API Key backups
+**/secrets.toml
+**/*api_key*
+**/*secret*
+
+# ===== LARGE DATA FILES =====
+# Raw Bangkok Taxi Probe Data (too large for GitHub)
+data/raw/PROBE-*/
+data/raw/PROBE_*.csv
+data/raw/PROBE_*.zip
+data/raw/**/PROBE*
+
+# HOTOSM Road Network Data (large GIS files)
+data/raw/hotosm_tha_roads_lines_geojson/
+data/raw/hotosm_tha_roads_lines_gpkg/
+data/raw/*.geojson
+data/raw/*.gpkg
+data/raw/*.shp
+data/raw/*.dbf
+data/raw/*.shx
+
+# iTIC Traffic Events (large time-series data)
+data/raw/iTIC-Longdo-Traffic-events-*/
+data/raw/iTIC*/
+data/raw/itic_*
+
+# Thailand Location Tables
+data/raw/Thailand_T19_*.xlsx
+data/raw/Thailand_*.xls*
+
+# Processed Data (can be regenerated)
+data/processed/
+data/interim/
+data/features/
+data/graphs/
+data/tensors/
+
+# ===== MODEL FILES =====
+# Trained Models (large binary files)
+models/*.pth
+models/*.pkl
+models/*.h5
+models/*.ckpt
+models/checkpoints/
+*.model
+weights/
+
+# Model outputs and logs
+logs/
+runs/
+tensorboard_logs/
+mlruns/
+
+# ===== PYTHON CACHE & TEMP =====
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# ===== JUPYTER NOTEBOOKS =====
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Jupyter output files
+*.nbconvert.py
+
+# ===== VIRTUAL ENVIRONMENTS =====
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+conda_env/
+
+# ===== IDE & EDITOR FILES =====
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# ===== SYSTEM FILES =====
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+desktop.ini
+$RECYCLE.BIN/
+
+# ===== STREAMLIT SPECIFIC =====
+# Streamlit cache
+.streamlit/
+**/streamlit/cache/
+
+# ===== ANALYSIS & VISUALIZATION =====
+# Matplotlib/Plotly cache
+.matplotlib/
+.plotly/
+
+# Image outputs (can be regenerated)
+*.png
+*.jpg
+*.jpeg
+*.gif
+!static/*.png
+!static/*.jpg
+!docs/images/*.png
+
+# Video outputs
+*.mp4
+*.avi
+*.mov
+
+# ===== DATABASE & CACHE =====
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Redis
+dump.rdb
+
+# ===== DOCUMENTATION =====
+# Sphinx documentation
+docs/_build/
+docs/build/
+
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+
+# ===== TESTING =====
+# Coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# ===== BACKUP & TEMPORARY =====
+# Backup files
+*.bak
+*.backup
+*.tmp
+*.temp
+
+# Archive files (unless specifically needed)
+*.zip
+*.tar.gz
+*.7z
+!setup_data.zip  # Keep small setup files
+
+# ===== PROJECT SPECIFIC =====
+# Longdo Maps cache
+longdo_cache/
+map_tiles/
+
+# Route calculation cache
+route_cache/
+navigation_cache/
+
+# GNN computation cache
+gnn_cache/
+graph_cache/
+
+# Traffic prediction outputs
+predictions/
+forecasts/
+
+# Performance benchmarks
+benchmarks/
+performance_logs/
+
+# ===== KEEP THESE FILES =====
+# Force include important files even if they match patterns above
+!README.md
+!requirements.txt
+!setup.py
+!LICENSE
+!.gitignore
+
+# Keep sample/demo data (small files only)
+!data/sample/
+!data/demo/
+!static/demo_data.csv
+
+# Keep configuration templates
+!configs/
+!config_templates/
+
+# Keep documentation
+!docs/
+!*.md
