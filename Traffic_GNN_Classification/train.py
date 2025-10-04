@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
 import warnings
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 warnings.filterwarnings('ignore')
 
 # Add src to path
@@ -164,9 +165,9 @@ class TrafficGNNTrainer:
         
         return self.train_data, self.val_data, self.test_data
     
-    def train_simple_model(self, epochs: int = 100, batch_size: int = 32):
-        """Train the simple model"""
-        print("=== Training Simple Model ===")
+    def train_simple_model(self, epochs: int = 100, batch_size: int = 32, patience: int = 20):
+        """Train the simple model with efficiency improvements"""
+        print("=== Training Simple Model (Enhanced Efficiency) ===")
         
         # Create model
         num_features = self.train_data['X'].shape[1]
@@ -176,11 +177,21 @@ class TrafficGNNTrainer:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(device)
         print(f"Using device: {device}")
+        print(f"Model parameters: {sum(p.numel() for p in self.model.parameters()):,}")
         
-        # Optimizers and loss functions
-        optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001, weight_decay=1e-4)
+        # Use AdamW optimizer (better weight decay)
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=0.001, weight_decay=1e-4)
         congestion_criterion = torch.nn.CrossEntropyLoss()
         rush_hour_criterion = torch.nn.CrossEntropyLoss()
+        
+        # Learning rate scheduler
+        scheduler = ReduceLROnPlateau(
+            optimizer,
+            mode='min',
+            factor=0.5,
+            patience=10,
+            min_lr=1e-6
+        )
         
         # Adjust batch size for small datasets
         n_train = len(self.train_data['X'])
@@ -207,14 +218,19 @@ class TrafficGNNTrainer:
         train_loader = DataLoader(train_dataset, batch_size=actual_batch_size, shuffle=True, drop_last=False)
         val_loader = DataLoader(val_dataset, batch_size=val_batch_size, shuffle=False, drop_last=False) if n_val > 0 else None
         
-        # Training loop
+        # Training loop with early stopping
         best_val_loss = float('inf')
+        patience_counter = 0
         train_losses = []
         val_losses = []
         train_acc_congestion = []
         train_acc_rush_hour = []
         val_acc_congestion = []
         val_acc_rush_hour = []
+        learning_rates = []
+        
+        print(f"\nStarting training for {epochs} epochs...")
+        print(f"Early stopping patience: {patience} epochs")
         
         for epoch in range(epochs):
             # Training phase
@@ -229,6 +245,11 @@ class TrafficGNNTrainer:
                 y_congestion_batch = y_congestion_batch.to(device)
                 y_rush_hour_batch = y_rush_hour_batch.to(device)
                 
+                # Data augmentation: Add small noise during training
+                if self.model.training:
+                    noise = torch.randn_like(X_batch) * 0.01
+                    X_batch = X_batch + noise
+                
                 optimizer.zero_grad()
                 
                 # Forward pass
@@ -241,6 +262,10 @@ class TrafficGNNTrainer:
                 
                 # Backward pass
                 total_loss.backward()
+                
+                # Gradient clipping to prevent exploding gradients
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+                
                 optimizer.step()
                 
                 # Statistics
@@ -298,6 +323,10 @@ class TrafficGNNTrainer:
             train_acc_rush_hour.append(train_rush_hour_acc)
             val_acc_congestion.append(val_congestion_acc)
             val_acc_rush_hour.append(val_rush_hour_acc)
+            learning_rates.append(optimizer.param_groups[0]['lr'])
+            
+            # Learning rate scheduling
+            scheduler.step(avg_val_loss)
             
             # Print progress
             if (epoch + 1) % 10 == 0:
@@ -305,10 +334,12 @@ class TrafficGNNTrainer:
                 print(f'  Train Loss: {avg_train_loss:.4f}, Val Loss: {avg_val_loss:.4f}')
                 print(f'  Train - Congestion Acc: {train_congestion_acc:.2f}%, Rush Hour Acc: {train_rush_hour_acc:.2f}%')
                 print(f'  Val - Congestion Acc: {val_congestion_acc:.2f}%, Rush Hour Acc: {val_rush_hour_acc:.2f}%')
+                print(f'  Learning Rate: {optimizer.param_groups[0]["lr"]:.6f}')
             
-            # Save best model
+            # Save best model and check early stopping
             if avg_val_loss < best_val_loss:
                 best_val_loss = avg_val_loss
+                patience_counter = 0
                 torch.save({
                     'epoch': epoch,
                     'model_state_dict': self.model.state_dict(),
@@ -318,6 +349,14 @@ class TrafficGNNTrainer:
                     'val_congestion_acc': val_congestion_acc,
                     'val_rush_hour_acc': val_rush_hour_acc
                 }, os.path.join(self.output_path, 'best_model.pth'))
+                if (epoch + 1) % 10 == 0:
+                    print(f'  ✓ New best model saved!')
+            else:
+                patience_counter += 1
+                if patience_counter >= patience:
+                    print(f'\nEarly stopping triggered after {epoch+1} epochs')
+                    print(f'No improvement for {patience} epochs')
+                    break
         
         # Save training history
         history = {
@@ -326,13 +365,21 @@ class TrafficGNNTrainer:
             'train_acc_congestion': train_acc_congestion,
             'train_acc_rush_hour': train_acc_rush_hour,
             'val_acc_congestion': val_acc_congestion,
-            'val_acc_rush_hour': val_acc_rush_hour
+            'val_acc_rush_hour': val_acc_rush_hour,
+            'learning_rates': learning_rates,
+            'best_epoch': epoch,
+            'total_epochs': len(train_losses)
         }
         
         with open(os.path.join(self.output_path, 'training_history.pkl'), 'wb') as f:
             pickle.dump(history, f)
         
-        print(f"Training completed! Best validation loss: {best_val_loss:.4f}")
+        print(f"\n=== Training Summary ===")
+        print(f"Total epochs trained: {len(train_losses)}")
+        print(f"Best validation loss: {best_val_loss:.4f}")
+        print(f"Best congestion accuracy: {max(val_acc_congestion):.2f}%")
+        print(f"Best rush hour accuracy: {max(val_acc_rush_hour):.2f}%")
+        print(f"Final learning rate: {learning_rates[-1]:.6f}")
         
         return history
     
@@ -400,11 +447,11 @@ class TrafficGNNTrainer:
         return eval_results
     
     def plot_training_history(self):
-        """Plot training history"""
+        """Plot training history with learning rate"""
         with open(os.path.join(self.output_path, 'training_history.pkl'), 'rb') as f:
             history = pickle.load(f)
         
-        fig, axes = plt.subplots(2, 2, figsize=(15, 10))
+        fig, axes = plt.subplots(2, 3, figsize=(18, 10))
         
         # Loss plots
         axes[0, 0].plot(history['train_losses'], label='Train Loss')
@@ -433,6 +480,15 @@ class TrafficGNNTrainer:
         axes[1, 0].legend()
         axes[1, 0].grid(True)
         
+        # Learning rate over time
+        if 'learning_rates' in history:
+            axes[1, 1].plot(history['learning_rates'], color='orange')
+            axes[1, 1].set_title('Learning Rate Schedule')
+            axes[1, 1].set_xlabel('Epoch')
+            axes[1, 1].set_ylabel('Learning Rate')
+            axes[1, 1].set_yscale('log')
+            axes[1, 1].grid(True)
+        
         # Final metrics comparison
         final_metrics = ['Congestion Acc', 'Rush Hour Acc']
         train_final = [history['train_acc_congestion'][-1], history['train_acc_rush_hour'][-1]]
@@ -441,18 +497,20 @@ class TrafficGNNTrainer:
         x = np.arange(len(final_metrics))
         width = 0.35
         
-        axes[1, 1].bar(x - width/2, train_final, width, label='Train')
-        axes[1, 1].bar(x + width/2, val_final, width, label='Validation')
-        axes[1, 1].set_title('Final Model Performance')
-        axes[1, 1].set_ylabel('Accuracy (%)')
-        axes[1, 1].set_xticks(x)
-        axes[1, 1].set_xticklabels(final_metrics)
-        axes[1, 1].legend()
-        axes[1, 1].grid(True)
+        axes[1, 2].bar(x - width/2, train_final, width, label='Train')
+        axes[1, 2].bar(x + width/2, val_final, width, label='Validation')
+        axes[1, 2].set_title('Final Model Performance')
+        axes[1, 2].set_ylabel('Accuracy (%)')
+        axes[1, 2].set_xticks(x)
+        axes[1, 2].set_xticklabels(final_metrics)
+        axes[1, 2].legend()
+        axes[1, 2].grid(True)
         
         plt.tight_layout()
-        plt.savefig(os.path.join(self.output_path, 'training_history.png'), dpi=300, bbox_inches='tight')
-        plt.show()
+        plot_path = os.path.join(self.output_path, 'training_history.png')
+        plt.savefig(plot_path, dpi=300, bbox_inches='tight')
+        print(f"Training history plot saved to: {plot_path}")
+        plt.close()  # Close the plot instead of showing it
     
     def run_complete_pipeline(self, epochs: int = 100, batch_size: int = 32, force_reprocess: bool = False):
         """Run the complete training pipeline"""
@@ -464,8 +522,8 @@ class TrafficGNNTrainer:
         # Create datasets
         self.create_simple_datasets()
         
-        # Train model
-        history = self.train_simple_model(epochs=epochs, batch_size=batch_size)
+        # Train model with patience parameter
+        history = self.train_simple_model(epochs=epochs, batch_size=batch_size, patience=20)
         
         # Evaluate model
         eval_results = self.evaluate_model()
@@ -481,10 +539,11 @@ class TrafficGNNTrainer:
         return history, eval_results
 
 def main():
-    """Main training function"""
-    parser = argparse.ArgumentParser(description='Train Multi-Task Traffic GNN')
+    """Main training function with efficiency improvements"""
+    parser = argparse.ArgumentParser(description='Train Multi-Task Traffic GNN (Enhanced Efficiency)')
     parser.add_argument('--epochs', type=int, default=100, help='Number of training epochs')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
+    parser.add_argument('--patience', type=int, default=20, help='Early stopping patience')
     parser.add_argument('--force_reprocess', action='store_true', help='Force reprocessing of data')
     parser.add_argument('--data_path', type=str, 
                        default="d:/user/Data_project/GNN_fore/src/data/raw",
@@ -503,6 +562,17 @@ def main():
     )
     
     # Run pipeline
+    print(f"\n" + "="*60)
+    print(f"Enhanced Training Configuration:")
+    print(f"  Epochs: {args.epochs}")
+    print(f"  Batch Size: {args.batch_size}")
+    print(f"  Early Stopping Patience: {args.patience}")
+    print(f"  Optimizer: AdamW with weight decay")
+    print(f"  LR Scheduler: ReduceLROnPlateau")
+    print(f"  Data Augmentation: Gaussian noise (std=0.01)")
+    print(f"  Gradient Clipping: max_norm=1.0")
+    print(f"="*60 + "\n")
+    
     history, eval_results = trainer.run_complete_pipeline(
         epochs=args.epochs,
         batch_size=args.batch_size,

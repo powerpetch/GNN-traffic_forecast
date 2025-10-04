@@ -404,24 +404,23 @@ class SimpleMultiTaskGNN(nn.Module):
         Simple forward pass
         
         Args:
-            x: [num_nodes, num_features] or [batch_size, num_features]
+            x: [batch_size, num_features] - batched input
         """
-        if x.dim() == 2 and x.shape[0] > 1:
-            # Multiple nodes, aggregate by mean
-            x = x.mean(dim=0, keepdim=True)
-        elif x.dim() == 2:
-            # Single node or already aggregated
-            pass
-        else:
-            # Flatten if needed
-            x = x.view(1, -1)
+        # Ensure we have 2D input [batch_size, num_features]
+        if x.dim() == 1:
+            # Single sample, add batch dimension
+            x = x.unsqueeze(0)
+        elif x.dim() > 2:
+            # Flatten extra dimensions
+            batch_size = x.shape[0]
+            x = x.view(batch_size, -1)
         
-        # Feature transformation
-        features = self.feature_transform(x)
+        # Feature transformation - preserves batch dimension
+        features = self.feature_transform(x)  # [batch_size, hidden_dim]
         
-        # Classification
-        congestion_logits = self.congestion_head(features)
-        rush_hour_logits = self.rush_hour_head(features)
+        # Classification heads - preserves batch dimension
+        congestion_logits = self.congestion_head(features)  # [batch_size, 4]
+        rush_hour_logits = self.rush_hour_head(features)    # [batch_size, 2]
         
         return {
             'congestion_logits': congestion_logits,
