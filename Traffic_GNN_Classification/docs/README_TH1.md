@@ -554,7 +554,7 @@ py compare_models.py
 
 - **GitHub Issues:** [Report bugs](https://github.com/powerpetch/GNN-traffic_forecast/issues)
 - **Documentation:** อ่านเอกสารใน `docs/`
-- **Email:** (ใส่อีเมลของคุณ)
+- **Email:** powerpetch05@gmail.com
 
 ---
 

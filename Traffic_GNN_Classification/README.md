@@ -315,7 +315,6 @@ For questions, issues, or contributions:
 
 1. **GitHub Issues**: Report bugs and feature requests
 2. **Documentation**: Check this README and code comments
-3. **Community**: Join discussions and share improvements
 
 ---
 
