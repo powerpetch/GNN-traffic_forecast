@@ -7,26 +7,85 @@ import streamlit as st
 import sys
 import os
 import warnings
+from pathlib import Path
 warnings.filterwarnings('ignore')
 
-# Add current directory to path for imports
+# Add current directory and parent directory to path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
+parent_dir = os.path.dirname(current_dir)
+
+# Add to path
+for path in [current_dir, parent_dir]:
+    if path not in sys.path:
+        sys.path.insert(0, path)
 
 # Import configuration and setup
-from config import init_page_config, apply_css
-from utils import create_sidebar
-from data_processing import load_model_and_data
+try:
+    from config import init_page_config, apply_css
+except ImportError:
+    from app.config import init_page_config, apply_css
+
+try:
+    from utils import create_sidebar
+except ImportError:
+    from app.utils import create_sidebar
+
+try:
+    from data_processing import load_model_and_data
+except ImportError:
+    from app.data_processing import load_model_and_data
 
 # Import tab modules
-from tab_overview import render_overview_tab
-from tab_live_map import render_live_map_tab  
-from tab_predictions import render_predictions_tab
+try:
+    from tab_overview import render_overview_tab
+    from tab_live_map import render_live_map_tab  
+    from tab_predictions import render_predictions_tab
+    from tab_gnn_graph import render_gnn_graph_tab
+    from tab_training import render_training_tab
+    from model_manager import get_model_list_for_selector
+except ImportError:
+    from app.tab_overview import render_overview_tab
+    from app.tab_live_map import render_live_map_tab  
+    from app.tab_predictions import render_predictions_tab
+    from app.tab_gnn_graph import render_gnn_graph_tab
+    from app.tab_training import render_training_tab
+    from app.model_manager import get_model_list_for_selector
 
-# Import additional modules
-from tab_gnn_graph import render_gnn_graph_tab
-from tab_training import render_training_tab
+def get_available_models_DEPRECATED():
+    """Get list of available models from outputs folder"""
+    models = []
+    
+    # Get absolute path to outputs folder
+    project_root = Path(__file__).parent.parent
+    outputs_path = project_root / "outputs"
+    
+    if not outputs_path.exists():
+        # Return default models if outputs folder doesn't exist
+        return ["Enhanced GNN", "Baseline Model", "Deep GNN", "Attention GNN"]
+    
+    # Scan for model files
+    model_files = [
+        (outputs_path / "best_model.pth", "Simple GNN (Base)"),
+        (outputs_path / "enhanced_training" / "enhanced_model.pth", "Enhanced GNN"),
+        (outputs_path / "optimized_training" / "optimized_model.pth", "Optimized GNN"),
+        (outputs_path / "quick_training" / "quick_model.pth", "Quick Training GNN"),
+    ]
+    
+    for model_path, model_name in model_files:
+        if model_path.exists():
+            models.append(model_name)
+    
+    # Add default models for compatibility
+    default_models = ["Baseline Model", "Deep GNN", "Attention GNN"]
+    for default in default_models:
+        if default not in models:
+            models.append(default)
+    
+    # If no models found, return defaults
+    if not models:
+        return ["Enhanced GNN", "Baseline Model", "Deep GNN", "Attention GNN"]
+    
+    return models
 
 def main():
     """Main dashboard application"""
@@ -59,12 +118,18 @@ def main():
     # Model selection with session state tracking
     st.sidebar.markdown("**Model Selection**")
     
-    # Check for newly trained models in session state
-    available_models = ["Enhanced GNN", "Baseline Model", "Deep GNN", "Attention GNN"]
+    # Get available models from outputs folder using shared function
+    available_models = get_model_list_for_selector()
+    
+    # Add newly trained models from session state
     if 'trained_models' in st.session_state:
         for model_name in st.session_state['trained_models']:
             if model_name not in available_models:
                 available_models.append(model_name)
+    
+    # Show indicator if models are from outputs folder
+    if any(name in available_models for name in ["Simple GNN (Base)", "Enhanced GNN", "Optimized GNN", "Quick Training GNN"]):
+        st.sidebar.success("✅ Using trained models")
     
     selected_model = st.sidebar.selectbox(
         "Choose GNN Model",
@@ -75,13 +140,34 @@ def main():
     )
     
     # Clear caches when model changes
-    if 'previous_model' not in st.session_state or st.session_state['previous_model'] != selected_model:
-        st.sidebar.info(f"Switching to {selected_model}...")
-        # Clear all prediction and visualization caches
-        keys_to_clear = [k for k in st.session_state.keys() if k.startswith(('predictions_', 'traffic_map_', 'network_viz_', 'analytics_data_'))]
-        for key in keys_to_clear:
-            del st.session_state[key]
+    if 'previous_model' not in st.session_state:
         st.session_state['previous_model'] = selected_model
+    
+    if st.session_state['previous_model'] != selected_model:
+        st.sidebar.warning(f"🔄 Switching to {selected_model}...")
+        
+        # Clear ALL session state except essentials
+        keys_to_keep = ['previous_model', 'model_selector', 'trained_models']
+        keys_to_clear = [k for k in list(st.session_state.keys()) if k not in keys_to_keep]
+        
+        cleared_count = 0
+        for key in keys_to_clear:
+            try:
+                del st.session_state[key]
+                cleared_count += 1
+            except:
+                pass
+        
+        # Update previous model
+        st.session_state['previous_model'] = selected_model
+        
+        # Clear Streamlit caches
+        st.cache_data.clear()
+        
+        # Show confirmation
+        st.sidebar.success(f"✅ Cleared {cleared_count} cached items + Streamlit cache")
+        
+        # Force rerun to regenerate with new model
         st.rerun()
     
     model_path = "enhanced" if selected_model == "Enhanced GNN" else "baseline"

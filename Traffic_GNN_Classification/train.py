@@ -353,7 +353,7 @@ class TrafficGNNTrainer:
                     print(f'  ✓ New best model saved!')
             else:
                 patience_counter += 1
-                if patience_counter >= patience:
+                if patience_counter >= patience: # 20 epochs
                     print(f'\nEarly stopping triggered after {epoch+1} epochs')
                     print(f'No improvement for {patience} epochs')
                     break
@@ -430,6 +430,33 @@ class TrafficGNNTrainer:
         print("\nRush Hour Classification Report:")
         print(classification_report(y_rush_hour_test, rush_hour_pred, 
                                   target_names=rush_hour_labels))
+        
+        # Plot Confusion Matrices
+        fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+        
+        # Congestion Confusion Matrix
+        cm_congestion = confusion_matrix(y_congestion_test, congestion_pred)
+        sns.heatmap(cm_congestion, annot=True, fmt='d', cmap='Blues', 
+                    xticklabels=congestion_labels, yticklabels=congestion_labels,
+                    ax=axes[0], cbar_kws={'label': 'Count'})
+        axes[0].set_title('Congestion Level - Confusion Matrix', fontsize=14, fontweight='bold')
+        axes[0].set_xlabel('Predicted Label', fontsize=12)
+        axes[0].set_ylabel('True Label', fontsize=12)
+        
+        # Rush Hour Confusion Matrix
+        cm_rush_hour = confusion_matrix(y_rush_hour_test, rush_hour_pred)
+        sns.heatmap(cm_rush_hour, annot=True, fmt='d', cmap='Oranges',
+                    xticklabels=rush_hour_labels, yticklabels=rush_hour_labels,
+                    ax=axes[1], cbar_kws={'label': 'Count'})
+        axes[1].set_title('Rush Hour - Confusion Matrix', fontsize=14, fontweight='bold')
+        axes[1].set_xlabel('Predicted Label', fontsize=12)
+        axes[1].set_ylabel('True Label', fontsize=12)
+        
+        plt.tight_layout()
+        plt.savefig(os.path.join(self.output_path, 'confusion_matrices.png'), 
+                    dpi=300, bbox_inches='tight')
+        print(f"\n✓ Confusion matrices saved to {self.output_path}/confusion_matrices.png")
+        plt.close()
         
         # Save evaluation results
         eval_results = {
@@ -549,7 +576,7 @@ def main():
                        default="d:/user/Data_project/GNN_fore/src/data/raw",
                        help='Path to raw data')
     parser.add_argument('--output_path', type=str,
-                       default="d:/user/Data_project/Traffic_GNN_Classification/outputs",
+                       default="d:/user/Data_project/Project_data/Traffic_GNN_Classification/outputs",
                        help='Path to save outputs')
     
     args = parser.parse_args()

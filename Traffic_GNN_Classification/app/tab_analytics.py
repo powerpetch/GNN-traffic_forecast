@@ -13,8 +13,19 @@ from data_processing import generate_time_based_predictions
 def render_analytics_tab(data, selected_model, model_path):
     """Render the analytics dashboard tab with performance metrics"""
     
-    st.markdown("**Prediction Accuracy Comparison**")
-    st.markdown("*Comprehensive GNN Training Analysis*")
+    # Header with refresh button
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        st.markdown("**Prediction Accuracy Comparison**")
+        st.markdown("*Comprehensive GNN Training Analysis*")
+    with col2:
+        if st.button("🔄 Refresh", help="Regenerate graph with current model", key="refresh_analytics"):
+            # Clear cache for current model
+            analytics_cache_key = f'analytics_data_{selected_model}'
+            if analytics_cache_key in st.session_state:
+                del st.session_state[analytics_cache_key]
+            st.success("Refreshed!")
+            st.rerun()
     
     # Import here to avoid circular imports
     from visualization import create_analytics_dashboard
@@ -23,24 +34,37 @@ def render_analytics_tab(data, selected_model, model_path):
     analytics_cache_key = f'analytics_data_{selected_model}'
     
     try:
+        # Force regenerate if model changed or not in cache
         if analytics_cache_key not in st.session_state:
-            with show_loading_spinner("Generating analytics dashboard..."):
-                st.session_state[analytics_cache_key] = create_analytics_dashboard(data)
+            st.info(f"🔄 Generating new analytics for **{selected_model}**...")
+            with show_loading_spinner(f"Generating analytics for {selected_model}..."):
+                # Pass selected_model to create_analytics_dashboard
+                st.session_state[analytics_cache_key] = create_analytics_dashboard(data, selected_model=selected_model)
+                st.success(f"✅ Analytics generated for **{selected_model}**")
+        else:
+            st.info(f"📦 Using cached analytics for **{selected_model}**")
         
         fig_speed, baseline_mae, trained_mae, improvement = st.session_state[analytics_cache_key]
-        st.plotly_chart(fig_speed, use_container_width=True, key=f"analytics_dashboard_chart_{selected_model}")
-    except Exception as e:
-        st.error(f"Analytics dashboard error: {e}")
-        st.info("Analytics dashboard temporarily unavailable")
-        if 'analytics_data' not in st.session_state:
-            with show_loading_spinner("� Generating analytics dashboard..."):
-                st.session_state.analytics_data = create_analytics_dashboard(data)
         
-        fig_speed, baseline_mae, trained_mae, improvement = st.session_state.analytics_data
-        st.plotly_chart(fig_speed, use_container_width=True, key="analytics_dashboard_chart")
+        # Show model info with details
+        st.success(f"📊 Showing performance for: **{selected_model}** | Cache Key: `{analytics_cache_key}`")
+        
+        st.plotly_chart(fig_speed, use_container_width=True, key=f"analytics_dashboard_chart_{selected_model}")
+        
+        # Show metrics summary
+        col_mae1, col_mae2, col_mae3 = st.columns(3)
+        with col_mae1:
+            st.metric("Before Training (MAE)", f"{baseline_mae:.2f} km/h", delta=None)
+        with col_mae2:
+            st.metric("After Training (MAE)", f"{trained_mae:.2f} km/h", delta=f"-{baseline_mae - trained_mae:.2f} km/h")
+        with col_mae3:
+            st.metric("Improvement", f"{improvement:.1f}%", delta=f"+{improvement:.1f}%")
+        
     except Exception as e:
         st.error(f"Analytics dashboard error: {e}")
         st.info("Analytics dashboard temporarily unavailable")
+        import traceback
+        st.code(traceback.format_exc())
     
     # Calculate performance metrics
     try:

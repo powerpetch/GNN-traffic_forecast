@@ -108,13 +108,14 @@ CSS_STYLES = """
 
 # Traffic level labels and descriptions
 TRAFFIC_LEVELS = {
-    'labels': ['Free-flow', 'Moderate', 'Congested', 'Gridlock'],
-    'colors': [COLORS['free_flow'], COLORS['moderate'], COLORS['congested'], COLORS['gridlock']],
+    # Order MUST match: 0=Gridlock, 1=Congested, 2=Moderate, 3=Free-flow
+    'labels': ['Gridlock', 'Congested', 'Moderate', 'Free-flow'],
+    'colors': [COLORS['gridlock'], COLORS['congested'], COLORS['moderate'], COLORS['free_flow']],
     'descriptions': [
-        'Light traffic, normal speeds',
-        'Moderate traffic, reduced speeds',
+        'Severe congestion, minimal movement',
         'Heavy traffic, slower speeds',
-        'Severe congestion, minimal movement'
+        'Moderate traffic, reduced speeds',
+        'Light traffic, normal speeds'
     ]
 }
 

@@ -38,8 +38,10 @@ def render_gnn_graph_tab(data, settings, selected_model):
             st.session_state[pred_cache_key] = generate_time_based_predictions(data, forecast_hour, is_weekend, is_rush_hour, is_night)
     dynamic_preds = st.session_state[pred_cache_key]
     
-    # Debug info
-    st.info(f"Using predictions: {pred_cache_key} | Sample: {dynamic_preds['congestion'][:5].tolist()}")
+    # Debug info - แสดงข้อมูลสำคัญ
+    congestion_sample = dynamic_preds['congestion'][:10].tolist()
+    congestion_counts_debug = np.bincount(dynamic_preds['congestion'], minlength=4)
+    st.info(f"🔍 Debug: Time={forecast_hour}:00 | Rush={is_rush_hour} | Night={is_night} | Sample={congestion_sample} | Counts={congestion_counts_debug.tolist()}")
     
     # Status Cards
     col1, col2, col3 = st.columns(3)
@@ -90,10 +92,16 @@ def render_gnn_graph_tab(data, settings, selected_model):
         # Professional traffic distribution display
         st.markdown("#### Traffic Congestion Levels")
         
-        # Calculate congestion distribution
+        # Calculate congestion distribution from SAME predictions used in graph
         congestion_counts = np.bincount(dynamic_preds['congestion'], minlength=4)
         labels = TRAFFIC_LEVELS['labels']
         colors = TRAFFIC_LEVELS['colors']
+        
+        # Verify data integrity
+        total_locations = len(dynamic_preds['congestion'])
+        count_sum = congestion_counts.sum()
+        if total_locations != count_sum:
+            st.error(f"⚠️ Data mismatch: {total_locations} locations but {count_sum} in counts")
         
         for i, (label, count, color) in enumerate(zip(labels, congestion_counts, colors)):
             percentage = (count / len(dynamic_preds['congestion'])) * 100

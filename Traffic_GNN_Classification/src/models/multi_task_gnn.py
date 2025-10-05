@@ -39,10 +39,10 @@ class TemporalConvBlock(nn.Module):
         Returns:
             x: [batch_size, out_channels, seq_length]
         """
-        x = self.conv1d(x)
-        x = self.batch_norm(x)
-        x = self.activation(x)
-        x = self.dropout(x)
+        x = self.conv1d(x)        # Convolution
+        x = self.batch_norm(x)    # Normalize
+        x = self.activation(x)    # ReLU
+        x = self.dropout(x)       # Regularization
         return x
 
 class SpatialGraphConv(nn.Module):
@@ -55,8 +55,10 @@ class SpatialGraphConv(nn.Module):
         self.conv_type = conv_type
         
         if conv_type == 'GCN':
+            # Graph Convolutional Network
             self.conv = GCNConv(in_features, out_features)
         elif conv_type == 'GAT':
+            # Graph Attention Network
             self.conv = GATConv(in_features, out_features // heads, heads=heads, concat=True)
         else:
             raise ValueError(f"Unsupported conv_type: {conv_type}")
@@ -73,11 +75,15 @@ class SpatialGraphConv(nn.Module):
         Returns:
             x: [num_nodes, out_features]
         """
-        x = self.conv(x, edge_index)
+        x = self.conv(x, edge_index) # GCN or GAT
         x = self.batch_norm(x)
         x = self.activation(x)
         x = self.dropout(x)
         return x
+
+# =============================
+# Core Component
+# =============================
 
 class STGCNBlock(nn.Module):
     """ST-GCN Block: Temporal -> Spatial -> Temporal"""
@@ -181,28 +187,35 @@ class MultiTaskTrafficGNN(pl.LightningModule):
         # ST-GCN layers
         self.stgcn_layers = nn.ModuleList()
         
-        # First layer
+        # First layer: input → hidden
         self.stgcn_layers.append(
             STGCNBlock(num_features, hidden_dim, hidden_dim, conv_type)
         )
         
-        # Additional layers
+        # Additional layers: hidden → hidden
         for _ in range(num_layers - 1):
             self.stgcn_layers.append(
                 STGCNBlock(hidden_dim, hidden_dim, hidden_dim, conv_type)
             )
         
-        # Global pooling
+        # =====================================
+        # Global Pooling
+        # =====================================
+        # Aggregate information from all nodes
         self.global_pool = nn.AdaptiveAvgPool2d((1, 1))
         
-        # Classification heads
+        # =====================================
+        # Classification Heads (Multi-Task)
+        # =====================================
+        
+        # Head 1: Congestion Classification
         self.congestion_classifier = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim // 2),
             nn.ReLU(),
             nn.Dropout(0.2),
             nn.Linear(hidden_dim // 2, num_classes_congestion)
         )
-        
+        # Head 2: Rush Hour Classification
         self.rush_hour_classifier = nn.Sequential(
             nn.Linear(hidden_dim, hidden_dim // 2),
             nn.ReLU(),
@@ -379,9 +392,7 @@ class MultiTaskTrafficGNN(pl.LightningModule):
             }
 
 class SimpleMultiTaskGNN(nn.Module):
-    """
-    Simplified version for easier training and debugging
-    """
+
     
     def __init__(self, num_features: int = 9, hidden_dim: int = 64):
         super(SimpleMultiTaskGNN, self).__init__()
@@ -400,12 +411,7 @@ class SimpleMultiTaskGNN(nn.Module):
         self.rush_hour_head = nn.Linear(hidden_dim, 2)   # 2 rush hour classes
         
     def forward(self, x):
-        """
-        Simple forward pass
-        
-        Args:
-            x: [batch_size, num_features] - batched input
-        """
+
         # Ensure we have 2D input [batch_size, num_features]
         if x.dim() == 1:
             # Single sample, add batch dimension
