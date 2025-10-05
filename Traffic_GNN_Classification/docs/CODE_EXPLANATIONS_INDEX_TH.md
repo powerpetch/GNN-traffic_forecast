@@ -39,9 +39,9 @@ Traffic_GNN_Classification/
 
 ## 📖 เอกสารที่มี
 
-### ✅ **เอกสารหลัก (พร้อมแล้ว)**
+### ✅ **เอกสารหลัก (สร้างครบแล้ว 100%)**
 
-#### 1. **[CODE_EXPLANATION_CONFIG_TH.md](CODE_EXPLANATION_CONFIG_TH.md)**
+#### 1. **[CODE_EXPLANATION_CONFIG_TH.md](CODE_EXPLANATION_CONFIG_TH.md)** ✅
 **📄 อธิบาย: `src/config/config.py`**
 
 **เนื้อหา:**
@@ -60,7 +60,7 @@ Traffic_GNN_Classification/
 
 ---
 
-#### 2. **[CODE_EXPLANATION_DATA_PROCESSOR_TH.md](CODE_EXPLANATION_DATA_PROCESSOR_TH.md)**
+#### 2. **[CODE_EXPLANATION_DATA_PROCESSOR_TH.md](CODE_EXPLANATION_DATA_PROCESSOR_TH.md)** ✅
 **📄 อธิบาย: `src/data/data_processor.py`**
 
 **เนื้อหา:**
@@ -87,70 +87,86 @@ Traffic_GNN_Classification/
 
 ---
 
-### 🔜 **เอกสารที่กำลังสร้าง**
+#### 3. **[CODE_EXPLANATION_MODELS_TH.md](CODE_EXPLANATION_MODELS_TH.md)** ✅
+**📄 อธิบาย: `src/models/multi_task_gnn.py`**
 
-#### 3. **CODE_EXPLANATION_MODELS_TH.md** (กำลังสร้าง)
-**📄 จะอธิบาย: `src/models/multi_task_gnn.py`**
-
-**เนื้อหาที่จะมี:**
-- 🧠 SimpleMultiTaskGNN
-  - สถาปัตยกรรม 4 ชั้น
+**เนื้อหา:**
+- 🧠 SimpleMultiTaskGNN (~9K parameters)
+  - สถาปัตยกรรม 4 ชั้น MLP
   - Forward pass แบบละเอียด
-  - จำนวน parameters: ~5K
-- 🚀 EnhancedGNNModel
-  - สถาปัตยกรรมขั้นสูง
-  - Techniques: BatchNorm, Residual, Attention, Dropout
-  - จำนวน parameters: ~62K
-- 📊 Multi-Task Learning
-  - ทำไมต้องเทรน 2 tasks พร้อมกัน
-  - การคำนวณ loss
-  - การ share representations
-- 🔍 ตัวอย่างการใช้งาน
+  - Multi-task output (congestion + rush hour)
+- 🚀 EnhancedGNNModel (~62K parameters)
+  - BatchNorm + Residual connections
+  - Attention mechanism
+  - Advanced regularization
+- 🔥 MultiTaskTrafficGNN (~22K parameters)
+  - ST-GCN architecture
+  - Spatio-temporal convolution
+  - TemporalConvBlock + SpatialGraphConv
+- 📊 เปรียบเทียบทั้ง 3 โมเดล
+
+**สิ่งที่จะได้เรียนรู้:**
+- แต่ละโมเดลแตกต่างกันอย่างไร
+- ทำไมต้องใช้ Multi-task learning
+- ST-GCN architecture ทำงานอย่างไร
+- เทคนิคขั้นสูง (BatchNorm, Residual, Attention)
+
+**อ่านเพิ่ม:** [CODE_EXPLANATION_MODELS_TH.md](CODE_EXPLANATION_MODELS_TH.md)
 
 ---
 
-#### 4. **CODE_EXPLANATION_GRAPH_TH.md** (กำลังสร้าง)
-**📄 จะอธิบาย: `src/utils/graph_constructor.py`**
+#### 4. **[CODE_EXPLANATION_GRAPH_TH.md](CODE_EXPLANATION_GRAPH_TH.md)** ✅
+**📄 อธิบาย: `src/utils/graph_constructor.py`**
 
-**เนื้อหาที่จะมี:**
-- 🕸️ การสร้างกราฟจากพิกัด
-- 📏 การคำนวณระยะทาง
-- 🔗 การสร้าง edges
-- 📊 Adjacency matrix
-- 🔍 การหา neighbors
-- 🎯 Spatial indexing
+**เนื้อหา:**
+- 🗺️ การสร้างกราฟจากแผนที่ถนน OSM
+- 🔗 build_road_graph(): สร้าง NetworkX graph
+- 📍 Intersection clustering algorithm
+- 📐 create_adjacency_matrix(): normalized adjacency
+- 🎯 find_k_nearest_neighbors(): K-NN spatial queries
+- 🌍 compute_haversine_distance(): great circle distance
+- 🔄 create_pytorch_geometric_data(): แปลงเป็น PyG format
+
+**สิ่งที่จะได้เรียนรู้:**
+- การสร้างกราฟถนนจาก OSM data
+- Algorithm ในการ cluster intersections
+- สูตร Haversine distance พร้อมตัวอย่าง
+- PyTorch Geometric Data format
+
+**อ่านเพิ่ม:** [CODE_EXPLANATION_GRAPH_TH.md](CODE_EXPLANATION_GRAPH_TH.md)
 
 ---
 
-#### 5. **CODE_EXPLANATION_TRAINING_TH.md** (กำลังสร้าง)
-**📄 จะอธิบาย: `train.py` และ `enhanced_train.py`**
+#### 5. **[CODE_EXPLANATION_TRAINING_TH.md](CODE_EXPLANATION_TRAINING_TH.md)** ✅
+**📄 อธิบาย: `train.py` & `enhanced_train.py`**
 
-**เนื้อหาที่จะมี:**
+**เนื้อหา:**
 - 🎓 Training loop แบบละเอียด
-- 📊 การคำนวณ loss
-- 🔄 Backpropagation
-- 📈 Optimization (AdamW)
-- 📉 Learning rate scheduling
-- ⏹️ Early stopping
+- 📊 Loss calculation (multi-task)
+- ⚙️ Optimization: AdamW + ReduceLROnPlateau
+- 🛑 Early stopping mechanism
 - 💾 Model checkpointing
-- 📊 Metrics และการประเมินผล
-- 🆚 ความแตกต่างระหว่าง Simple vs Enhanced
+- 📈 Metrics and evaluation
+- 🆚 เปรียบเทียบ train.py vs enhanced_train.py
+- 💡 เทคนิคขั้นสูง:
+  - Mixed Precision Training
+  - Label Smoothing
+  - Cosine Annealing with Warm Restarts
+  - Advanced Early Stopping
+
+**สิ่งที่จะได้เรียนรู้:**
+- Pipeline การเทรนครบวงจร
+- ทำไมต้องใช้ Learning rate scheduler
+- Early stopping ทำงานอย่างไร
+- เทคนิคขั้นสูงช่วยเพิ่ม performance
+
+**อ่านเพิ่ม:** [CODE_EXPLANATION_TRAINING_TH.md](CODE_EXPLANATION_TRAINING_TH.md)
 
 ---
 
-#### 6. **CODE_EXPLANATION_DASHBOARD_TH.md** (กำลังสร้าง)
-**📄 จะอธิบาย: `app/dashboard.py` และทุก tabs**
+### ℹ️ **Dashboard (ไม่อธิบาย - ตามคำขอ)**
 
-**เนื้อหาที่จะมี:**
-- 🖥️ โครงสร้าง Streamlit app
-- 🏠 Tab Overview: หน้าแรก
-- 🔮 Tab Predictions: ทำนายการจราจร
-- 📊 Tab Analytics: วิเคราะห์ข้อมูล
-- 🕸️ Tab GNN Graph: แสดงกราฟ
-- 🗺️ Tab Live Map: แผนที่ real-time
-- 🎓 Tab Training: เทรนโมเดล
-- 🛠️ Utilities และ helper functions
-- 📸 Screenshots และตัวอย่างการใช้งาน
+เอกสารเหล่านี้ครอบคลุมโค้ดหลักทั้งหมดยกเว้น Dashboard ตามคำขอของผู้ใช้
 
 ---
 
@@ -222,20 +238,23 @@ Traffic_GNN_Classification/
 - [DATA_PROCESSING_TH.md](DATA_PROCESSING_TH.md) → แนวคิดและทฤษฎี
 
 #### **Models:**
-- [CODE_EXPLANATION_MODELS_TH.md](#) (กำลังสร้าง) → อธิบายโค้ด
+- [CODE_EXPLANATION_MODELS_TH.md](CODE_EXPLANATION_MODELS_TH.md) ✅ → อธิบายโค้ดแบบละเอียด
 - [TECHNICAL_DETAILS_TH.md](TECHNICAL_DETAILS_TH.md) → ทฤษฎี GNN
 
 #### **Training:**
-- [CODE_EXPLANATION_TRAINING_TH.md](#) (กำลังสร้าง) → อธิบายโค้ด
+- [CODE_EXPLANATION_TRAINING_TH.md](CODE_EXPLANATION_TRAINING_TH.md) ✅ → อธิบายโค้ดแบบละเอียด
 - [TRAINING_IMPROVEMENTS.md](../TRAINING_IMPROVEMENTS.md) → เทคนิคการปรับปรุง
 - [ENHANCED_TRAINING_GUIDE.md](../ENHANCED_TRAINING_GUIDE.md) → คู่มือเทรน
 
+#### **Graph Construction:**
+- [CODE_EXPLANATION_GRAPH_TH.md](CODE_EXPLANATION_GRAPH_TH.md) ✅ → อธิบายโค้ดแบบละเอียด
+
 #### **Configuration:**
-- [CODE_EXPLANATION_CONFIG_TH.md](CODE_EXPLANATION_CONFIG_TH.md) → อธิบายทุกพารามิเตอร์
+- [CODE_EXPLANATION_CONFIG_TH.md](CODE_EXPLANATION_CONFIG_TH.md) ✅ → อธิบายทุกพารามิเตอร์
 
 #### **Dashboard:**
-- [CODE_EXPLANATION_DASHBOARD_TH.md](#) (กำลังสร้าง) → อธิบายโค้ด
-- [app/README_MODULAR.md](../app/README_MODULAR.md) → โครงสร้าง modular
+- ❌ ไม่รวมในเอกสารตามคำขอ
+- [app/README_MODULAR.md](../app/README_MODULAR.md) → โครงสร้าง modular (อ้างอิงเดิม)
 
 ---
 
@@ -266,12 +285,12 @@ Traffic_GNN_Classification/
 |----------|--------|----------|------------|-------------|--------|
 | `config.py` | ~220 | 1 | 60+ | ✅ พร้อมแล้ว | 100% |
 | `data_processor.py` | ~530 | 15+ | 27 features | ✅ พร้อมแล้ว | 100% |
-| `multi_task_gnn.py` | ~350 | 2 classes | ~5K, ~62K params | 🔜 กำลังสร้าง | 0% |
-| `graph_constructor.py` | ~280 | 8+ | - | 🔜 กำลังสร้าง | 0% |
-| `train.py` | ~450 | 10+ | - | 🔜 กำลังสร้าง | 0% |
-| `enhanced_train.py` | ~520 | 12+ | - | 🔜 กำลังสร้าง | 0% |
-| `dashboard.py` | ~380 | 5 tabs | - | 🔜 กำลังสร้าง | 0% |
-| ทั้งหมด | ~2,730 | 50+ | - | - | 28% |
+| `multi_task_gnn.py` | ~350 | 3 classes | ~9K, ~22K, ~62K params | ✅ พร้อมแล้ว | 100% |
+| `graph_constructor.py` | ~280 | 8+ | - | ✅ พร้อมแล้ว | 100% |
+| `train.py` | ~450 | 10+ | - | ✅ พร้อมแล้ว | 100% |
+| `enhanced_train.py` | ~520 | 12+ | - | ✅ พร้อมแล้ว | 100% |
+| `dashboard.py` | ~380 | 5 tabs | - | ❌ ไม่อธิบาย | - |
+| ทั้งหมด | ~2,730 | 50+ | - | - | **100%** |
 
 ---
 
